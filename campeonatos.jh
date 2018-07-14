@@ -1,0 +1,146 @@
+entity Campeonato {
+	id Integer required
+    nome String required maxlength(100)
+	descricao String maxlength(1000)
+    inicio Instant
+    fim	Instant
+    local String maxlength(50)
+    criadoEm Instant required
+    categoria String maxlength(50) // Ex.: infantil, sub-9, pré-mirim
+	tipo TipoEquipes
+}
+
+entity Grupo {
+	id Integer
+    nome String maxlength(20) // deixar dessa forma para depois permitir funcionalidade de separar por categoria especifica do usuario, ex.: cor, bairro, regiao 
+}
+
+entity Regulamento {
+	id Integer
+    nome String
+    template Boolean
+	tipo TipoCampeonato
+	num_grupos Integer
+    equipesPorGrupo Integer
+    classificadosPorGrupo Integer
+    pontosVitoria Integer required
+    pontosEmpate Integer required
+    pontosDerrota Integer required
+    criteriosSorteioGrupos CriteriosSorteio
+    criteriosSorteioPlayoff CriteriosSorteio
+    criteriosDesempate String // JSON com os criterios de desempate
+}
+
+enum CriteriosDesempate {
+	PONTOS, SALDO, GOLS, CARTOES, SORTEIO
+}
+
+enum CriteriosSorteio {
+	LIVRE, POTES, RANKING
+}
+
+entity Arquivo {
+	id Integer required
+    nome String maxlength(100)
+    url	String required
+}
+
+entity Modalidade {
+	id Integer required
+    nome String required
+}
+
+enum TipoEquipes {
+	INDIVIDUAL, DUPLAS, EQUIPES
+}
+
+enum TipoCampeonato {
+	LIGA, PLAYOFF, MISTO 
+}
+
+entity Equipe {
+	id Integer required
+    nome String required
+    responsavel Usuario
+    nomeResponsavel String
+    emailResponsavel String
+    urlFoto String
+    historia String
+}
+
+entity Partida {
+	id Integer required
+    data Instant
+    local String
+    status StatusPartida required
+	placarFinalMandante Integer
+    placarFinalVisitante Integer
+    placarFinal PlacarFinal
+    detalhesPlacar String // JSON para equipe vencedora, placar final, parcial  etc.
+    permiteEmpate Boolean required
+  	rodada Integer
+    turno Integer // 0 para unico
+    posicaoOrigemMandante Integer
+    posicaoOrigemVisitante Integer
+}
+
+enum PlacarFinal {
+	VITORIA, DERROTA, EMPATE // Sempre considerando a perspectiva do mandante
+}
+
+entity Evento {
+	id Integer required
+    nome String required maxlength(10)
+}
+
+entity TipoEvento {
+	id Integer required
+    nome String required
+}
+
+enum StatusPartida {
+	PROGRAMADA, REALIZADA, REMARCADA, SUSPENSA, CANCELADA
+}
+
+entity Usuario {
+	id Integer required
+	nome String required
+    email String required
+    senha String required
+}
+
+relationship OneToOne {
+	Campeonato{modalidade} to Modalidade,
+	Campeonato{organizador} to Usuario,
+    Campeonato{regulamento} to Regulamento,
+	Partida{mandante} to Equipe,
+	Partida{visitante} to Equipe,
+    Partida{partidaOrigemMandante} to Partida,
+    Partida{partidaOrigemVisitante} to Partida,
+    Partida{grupoOrigemMandante} to Grupo,
+    Partida{grupoOrigemVisitante} to Grupo
+}
+
+relationship OneToMany {
+	Campeonato{arquivos} to Arquivo,
+    Campeonato{grupos} to Grupo,
+	Equipe{modalidades} to Modalidade,
+    Usuario{equipes} to Usuario
+}
+
+relationship ManyToMany {
+	Campeonato{equipes} to Equipe{campeonatos},
+    Grupo{equipes} to Equipe{grupos},
+    Evento{modalidades} to Modalidade{eventos}
+}
+
+// Set pagination options
+paginate Campeonato, Usuario with infinite-scroll
+paginate Modalidade, Partida with pagination
+
+dto * with mapstruct
+
+service all with serviceImpl
+
+// Set an angular suffix
+angularSuffix * with mySuffix
